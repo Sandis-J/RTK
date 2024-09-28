@@ -1,5 +1,7 @@
 2024. gada Sanda Jurcika, 4. kursa elektronikas tehniķa diploma darbs.
 
+Izstrādājuma lodēšanas video: https://youtu.be/y8hsX3UYRdU
+
 Satur "Saules baterijas lampas ar kustības sensora" (izstrādājuma):
   * dokumentāciju:
       > apraksts;
