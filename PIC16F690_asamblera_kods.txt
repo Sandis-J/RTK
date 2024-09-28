@@ -1,0 +1,94 @@
+#include <p16F690.inc>
+__config (_INTRC_OSC_NOCLKOUT & _WDT_OFF & _PWRTE_ON & _MCLRE_OFF & _CP_OFF & _BOR_OFF & _IESO_OFF & _FCMEN_OFF)
+org 0
+Start
+;****************INICIALIZĀCIJA****************
+BCF 	STATUS,RP0 		;Bank 0
+BCF 	STATUS,RP1 		
+CLRF 	PORTC 			;Init PORTC
+CLRF 	PORTB 			;Init PORTB
+CLRF 	PORTA 			;Init PORTA
+BSF 	STATUS,RP0 		;Bank 1
+MOVLW 	b'00001000'		;Uzstāda RA<3> INPUT
+MOVWF 	TRISA			;un RA<1;2;4:7> OUTPUT.
+CLRF 	TRISB			;Uzstāda visus B portus par OUTPUT.
+MOVLW 	b'00001011'		;Uzstāda RC<0;1;3> INPUT
+MOVWF 	TRISC			;un RC<2;4...7> OUTPUT.
+BCF 	STATUS,RP0 		;Bank 2
+BSF 	STATUS,RP1		
+MOVLW 	b'10000000'		;Uzstāda RC3<AN7> par
+MOVWF 	ANSEL			;ANALOG ieejas kanālu.
+BCF 	STATUS,RP1 		;Bank 0
+BCF 	STATUS,RP0 		
+MOVLW 	b'10011101'		;A/D CONTROL REGISTER parametri
+MOVWF 	ADCON0			;AN7 kanāls, VDD ref, Right justified, ADC ON
+BSF 	STATUS,RP0 		;Bank 1
+MOVLW 	b'00110000'		;A/D CONTROL REGISTRA parametri
+MOVWF 	ADCON1
+BCF		0x8f, 3			;31kHz
+BCF		0x8f, 4			;31kHz
+BCF		0x8f, 5			;31kHz
+BCF		0x8f, 6			;31kHz
+BCF 	STATUS,RP0 		;Bank 0
+;****************PROGRAMMAS SĀKUMS****************
+SĀKUMS		BCF		PORTA,2			;Izslēdz PIR!
+UR16		BSF 	ADCON0,GO		;A/D pārveides procesa uzsākšana
+ADCloop		BTFSC	ADCON0,GO		;Pārbauda vai reģistra 2.bits ir 0 (vai ADC ir pabeigts)
+			GOTO 	ADCloop			;Atgriezties uz "ADCloop", ja ADCON0 reģistra 2. bits ir 1
+			BTFSC	PORTC,0			;Pārbauda vai ir nospiesta poga, ja nav tad izlaiž nākamo soli
+			GOTO	LEDON
+;********************IF NOSACĪJUMS(0,15V)************************
+			MOVF 	ADRESH,W		;Pārvieto ADC rezultātu reģistra 10. un 9. bitu uz W
+			MOVWF	0x42			;Ievieto reultātu 0x42 reģistrā
+			BTFSC	0x42,1			;Ja reģistra 1.bits ir 1 tad atgriezties sākumā
+			GOTO	SĀKUMS
+			BTFSC	0x42,0			;Ja reģistra 0.bits ir 1 tad atgriezties sākumā
+			GOTO	SĀKUMS
+			BSF 	STATUS,RP0 		;Bank 1
+			MOVF 	ADRESL,W		;Pārvieto ADC rezultātu reģistra jaunākos 8bit uz W
+			BCF 	STATUS,RP0 		;Bank 0
+			MOVWF 	0x69			;Ievieto reultātu 0x69 reģistrā
+			BTFSC	0x69,7			;Ja reģistra 7.bits ir 1 tad atgriezties sākumā (Ja UR16<0,62V doties tālāk)
+			GOTO	SĀKUMS
+			BTFSC	0x69,6			;Ja reģistra 6.bits ir 1 tad atgriezties sākumā (Ja UR16<0,3V doties tālāk)
+			GOTO	SĀKUMS
+;************************PIR_IESLĒGŠANA********************
+			BTFSS	PORTA,2			;Ja pir nav bijis ieslēgts, tad 3sek pauze
+			CALL	delay_3sec
+;********************IF NOSACĪJUMA TURPINĀJUMS(0,15V)************************
+PIRON		BTFSC	0x69,5			;Ja reģistra 5.bits ir 1 tad atgriezties sākumā (Ja UR16<0,151V doties tālāk)
+			GOTO	UR16
+;********************PIR PĀRBAUDE************************
+			BTFSS	PORTC,1			;Pārbauda vai PIR neuztver kustību
+			GOTO	UR16
+;**************************LED IESLĒGŠANA**************************
+LEDON		BSF		PORTC,6			;Ieslēdz LED
+;***********************15SEK PAUZE***********************
+			MOVLW 	.160			;Maina Pauzes ilgumu (ciklu daudzumu)
+			MOVWF 	0x25			
+			MOVLW 	.250
+d15_loop	MOVWF 	0x21
+d15_1		DECFSZ 	0x21,1	
+			GOTO	d15_1
+			DECFSZ 	0x25,1
+			GOTO 	d15_loop
+;**************************LED IZSLĒGŠANA**************************					
+			BCF		PORTC,6			;Izslēdz LED
+			BTFSC	PORTC,0			;Pārbauda vai ir nospiesta poga, ja nav tad izlaiž nākamo soli
+			GOTO	LEDON
+			GOTO 	UR16
+;***********************3SEK PAUZE***********************
+delay_3sec	BSF		PORTA,2			;Ieslēdz PIR sensoru
+			MOVLW 	.032			;Maina Pauzes ilgumu (ciklu daudzumu)
+			MOVWF 	0x23
+			MOVLW 	.250
+d3_loop		MOVWF 	0x21
+d3_1		DECFSZ 	0x21,1	
+			GOTO	d3_1
+			DECFSZ 	0x23,1
+			GOTO 	d3_loop
+			GOTO	PIRON		
+;**********************PROGRAMMAS BEIGAS**********************
+end
+
+
