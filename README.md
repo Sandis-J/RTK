@@ -2,8 +2,8 @@
 
 Satur "Saules baterijas lampas ar kustības sensora" (izstrādājuma):
   * dokumentāciju:
-      > apraksts
-      > pielikumi
+      > apraksts;
+      > pielikumi;
   * rasējumus:
       > principiālās shēmas rasējumu;
       > iespiedplates (PCB) rasējumu;
@@ -12,6 +12,6 @@ Satur "Saules baterijas lampas ar kustības sensora" (izstrādājuma):
   * algoritmu blokshēmu;
   * PIC16F690 programmu;
   * rasēšanas programmas EASYEDA failus:
-      > principiālā shēma
-      > iespiedplate (PCB)
+      > principiālā shēma;
+      > iespiedplate (PCB);
       > iespiedplates gerber.
